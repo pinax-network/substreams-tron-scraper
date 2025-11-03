@@ -1,17 +1,9 @@
-import fs from 'fs';
 import { callContract } from './lib/rpc';
+import { insert_metadata } from './src/insert';
+import { get_contracts } from './src/queries';
 import { parse_string } from './src/utils';
 
-const contracts = [
-    'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', // USDT
-    'TRFe3hT5oYhjSZ6f3ji5FJ7YCfrkWnHRvh', // ETHB
-    'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8', // USDC
-    'THbVQp8kMjStKNnf2iCY6NEzThKMK5aBHg', // DOGE
-    'TXWkP3jLBqRGojUih1ShzNyDaN5Csnebok', // WETH
-    'TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR', // WTRX
-    'TFptbWaARrWTX5Yvy3gNG5Lm8BmhPx82Bt', // WBT
-    'TU3kjFuhtEo42tsCBtfYUAZxoqQ4yuSLQ5', // sTRX
-]
+const contracts = await get_contracts();
 
 for (const contract of contracts) {
     const data: { decimals?: number | null; symbol?: string | null; name?: string | null, contract: string, name_str?: string, symbol_str?: string } = {
@@ -36,10 +28,16 @@ for (const contract of contracts) {
         // Fetch symbol
         const symbol = await callContract(contract, "symbol()"); // 95d89b41
         const name = await callContract(contract, "name()"); // 06fdde03
-        if (data.decimals !== null) {
+        if (data.decimals !== null && data.decimals !== undefined) {
             data.name_str = parse_string(name);
             data.symbol_str = parse_string(symbol);
             console.log(`  -> ${data.name_str} (${data.symbol_str}), decimals: ${data.decimals}`);
+            insert_metadata({
+                contract: data.contract,
+                name: data.name_str || '',
+                symbol: data.symbol_str || '',
+                decimals: data.decimals,
+            });
         }
 
     } catch (err) {

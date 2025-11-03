@@ -1,6 +1,6 @@
 import { createClient } from '@clickhouse/client';
 
-export const clickhouseClient = createClient({
+export const client = createClient({
     url: process.env.CLICKHOUSE_URL || 'http://localhost:8123',
     username: process.env.CLICKHOUSE_USERNAME || 'default',
     password: process.env.CLICKHOUSE_PASSWORD || '',
@@ -23,60 +23,26 @@ export interface QueryMetrics {
     totalTimeMs: number;
 }
 
-export interface TokenDataWithMetrics {
-    data: TokenData[];
+export async function query<T = any>(query: string, query_params: Record<string, any>): Promise<{
+    data: T[];
     metrics: QueryMetrics;
-}
-
-export async function getActiveTokens(): Promise<TokenDataWithMetrics> {
-    const contractAddress = process.env.CONTRACT_ADDRESS || '0xdca00000067413240aeab357a3a89ea352d013e8';
-
-    const query = `
-    WITH latest_token_props AS (
-      SELECT
-        stp.token, stp.token_symbol, stp.token_name,
-        stp.token_decimals, stp.feed, stp.is_stakable,
-        ROW_NUMBER() OVER (PARTITION BY stp.token ORDER BY stp.block_num DESC) as rn
-      FROM set_token_props stp
-      JOIN blocks ON stp.block_hash = blocks.block_hash
-      WHERE lower(stp.contract) = lower({contractAddress:String})
-    ),
-    latest_token_state AS (
-      SELECT
-        sts.token, sts.is_active,
-        ROW_NUMBER() OVER (PARTITION BY sts.token ORDER BY sts.block_num DESC) as rn
-      FROM set_token_state sts
-      JOIN blocks ON sts.block_hash = blocks.block_hash
-      WHERE lower(sts.contract) = lower({contractAddress:String})
-    )
-    SELECT
-      ltp.token, ltp.token_symbol, ltp.token_name,
-      ltp.token_decimals, ltp.feed, ltp.is_stakable,
-      lts.is_active
-    FROM latest_token_props ltp
-    INNER JOIN latest_token_state lts ON ltp.token = lts.token
-    WHERE ltp.rn = 1 AND lts.rn = 1 AND lts.is_active = true
-    ORDER BY ltp.token_symbol ASC
-  `;
-
+}> {
     // Track total operation time
     const startTime = performance.now();
 
     try {
         // Track query execution time
         const queryStartTime = performance.now();
-        const resultSet = await clickhouseClient.query({
+        const resultSet = await client.query({
             query,
-            query_params: {
-                contractAddress,
-            },
+            query_params,
             format: 'JSONEachRow',
         });
         const queryEndTime = performance.now();
 
         // Track data parsing time
         const parseStartTime = performance.now();
-        const data = await resultSet.json();
+        const data: T[] = await resultSet.json();
         const parseEndTime = performance.now();
 
         const endTime = performance.now();
@@ -87,7 +53,7 @@ export async function getActiveTokens(): Promise<TokenDataWithMetrics> {
         const totalTimeMs = Math.round((endTime - startTime) * 100) / 100;
 
         return {
-            data: data as TokenData[],
+            data,
             metrics: {
                 httpRequestTimeMs,
                 dataFetchTimeMs,
