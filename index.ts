@@ -31,7 +31,7 @@ for (const contract of contracts) {
             const name = await callContract(contract, "name()"); // 06fdde03
             data.name_str = parse_string(name);
             data.symbol_str = parse_string(symbol);
-            console.log(`  -> ${data.name_str} (${data.symbol_str}), decimals: ${data.decimals}`);
+            console.log(`  -> ${data.name_str} (${data.symbol_str}), decimals: ${data.decimals} [${contract}]`);
             insert_metadata({
                 contract: data.contract,
                 name: data.name_str || '',

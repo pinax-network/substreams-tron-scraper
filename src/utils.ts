@@ -2,9 +2,9 @@ import { hextoString } from 'tronweb/utils';
 
 export function parse_string(str: string) {
     const data = hextoString(str)
-        .replace(/[\u0000-\u001F0-9]/g, '') // removes control chars and digits
-        .replace(/\\"/g, '')
+        .replace(/[\p{Cc}\p{Cf}]/gu, '') // remove all control & format chars
+        .replace(/\\"/g, '"')
         .trim();
-    if (data.length === 0) return undefined;
-    return data;
+
+    return data.length ? data : undefined;
 }
