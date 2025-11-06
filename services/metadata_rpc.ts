@@ -1,6 +1,6 @@
-import { callContract } from './lib/rpc';
-import { insert_error_metadata, insert_metadata } from './src/insert';
-import { get_contracts } from './src/queries';
+import { callContract } from '../lib/rpc';
+import { insert_error_metadata, insert_metadata } from '../src/insert';
+import { get_contracts } from '../src/queries';
 
 const contracts = await get_contracts();
 
