@@ -4,4 +4,4 @@ WHERE account NOT IN (
     SELECT account
     FROM trc20_balances_rpc
 )
-LIMIT 1000;
+LIMIT 1000000
