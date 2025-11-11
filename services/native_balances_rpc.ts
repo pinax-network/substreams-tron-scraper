@@ -22,16 +22,12 @@ async function processNativeBalance(account: string, tracker: ProgressTracker) {
     try {
         const balance_hex = await getNativeBalance(account);
 
-        if (balance_hex) {
-            await insert_native_balances({
-                account,
-                balance_hex
-            });
-            tracker.incrementSuccess();
-        } else {
-            await insert_error_native_balances(account, "zero balance");
-            tracker.incrementError();
-        }
+        // Store balance (including "0" for zero balance)
+        await insert_native_balances({
+            account,
+            balance_hex
+        });
+        tracker.incrementSuccess();
 
     } catch (err) {
         const message = (err as Error).message || String(err);
