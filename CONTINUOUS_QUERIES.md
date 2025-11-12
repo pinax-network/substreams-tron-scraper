@@ -8,7 +8,7 @@ This document describes the continuous query mechanism implemented for the ERC20
 
 ### Block Number Tracking
 
-The `erc20_balances_rpc` table now includes a `block_num` field that stores the block number of the transfer event that triggered the balance query. This allows the system to:
+The `trc20_balances_rpc` table now includes a `block_num` field that stores the block number of the transfer event that triggered the balance query. This allows the system to:
 
 1. Track which block was last processed for each balance
 2. Skip transfers that have already been processed
@@ -17,7 +17,7 @@ The `erc20_balances_rpc` table now includes a `block_num` field that stores the 
 ### Query Flow
 
 ```
-1. Query erc20_balances_rpc to get the highest block_num per contract/account pair
+1. Query trc20_balances_rpc to get the highest block_num per contract/account pair
 2. Query erc20_transfer for transfers where:
    - The account doesn't exist in balances yet, OR
    - The transfer's block_num is greater than the last known block for that account
@@ -41,7 +41,7 @@ The query uses CTEs (Common Table Expressions) to:
 ```sql
 WITH balances AS (
     SELECT contract, account, block_num
-    FROM erc20_balances_rpc
+    FROM trc20_balances_rpc
     WHERE is_ok = 1
 ),
 latest_blocks AS (
@@ -54,10 +54,10 @@ SELECT DISTINCT
     t.`from`,
     t.`to`,
     t.block_num
-FROM erc20_transfer t
+FROM trc20_transfer t
 LEFT JOIN latest_blocks lb_to ON (t.log_address = lb_to.contract AND t.`to` = lb_to.account)
 LEFT JOIN latest_blocks lb_from ON (t.log_address = lb_from.contract AND t.`from` = lb_from.account)
-WHERE 
+WHERE
     (lb_to.last_block_num IS NULL OR t.block_num > lb_to.last_block_num)
     OR (lb_from.last_block_num IS NULL OR t.block_num > lb_from.last_block_num)
 ORDER BY t.block_num DESC
@@ -95,14 +95,14 @@ bun run balances
 
 ## Database Schema Requirements
 
-The `erc20_balances_rpc` table must include:
+The `trc20_balances_rpc` table must include:
 - `block_num` column (UInt32 or similar integer type)
 - `is_ok` column (to filter successful balance queries)
 - Appropriate indexes on `contract`, `account`, and `block_num` for query performance
 
 Example schema addition:
 ```sql
-ALTER TABLE erc20_balances_rpc
+ALTER TABLE trc20_balances_rpc
     ADD COLUMN IF NOT EXISTS block_num UInt32 DEFAULT 0,
     ADD INDEX IF NOT EXISTS idx_block_num (block_num) TYPE minmax GRANULARITY 1;
 ```

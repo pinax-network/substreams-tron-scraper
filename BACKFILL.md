@@ -15,9 +15,9 @@ The backfill services are designed to process historical balance data from the e
 2. Identifies accounts that don't have balances at the maximum block (incomplete)
 3. Processes transfers from highest to lowest block number
 4. Queries RPC for balance at each transfer's block number
-5. Stores results in `erc20_balances_rpc` table with block_num
+5. Stores results in `trc20_balances_rpc` table with block_num
 
-**SQL Query** (`sql/get_erc20_backfill_transfers.sql`):
+**SQL Query** (`sql/get_trc20_backfill_transfers.sql`):
 ```sql
 -- Find max block number
 -- Get balances that are already at max block (complete)
@@ -191,7 +191,7 @@ Access at: `http://localhost:9090/metrics`
 
 Both services require:
 
-**erc20_balances_rpc**:
+**trc20_balances_rpc**:
 - `block_num` column (UInt32)
 - `is_ok` column (to filter successful queries)
 - Indexes on `contract`, `account`, `block_num`
@@ -233,10 +233,10 @@ Both services handle errors gracefully:
 
 ```bash
 # See how many transfers still need processing
-echo "SELECT COUNT(*) FROM erc20_transfer WHERE block_num > (SELECT MAX(block_num) FROM erc20_balances_rpc)" | clickhouse-client
+echo "SELECT COUNT(*) FROM trc20_transfer WHERE block_num > (SELECT MAX(block_num) FROM trc20_balances_rpc)" | clickhouse-client
 
 # See how many accounts need native balances
-echo "SELECT COUNT(DISTINCT account) FROM erc20_transfer_agg WHERE account NOT IN (SELECT account FROM native_balances_rpc)" | clickhouse-client
+echo "SELECT COUNT(DISTINCT account) FROM trc20_transfer_agg WHERE account NOT IN (SELECT account FROM native_balances_rpc)" | clickhouse-client
 ```
 
 ### Verify Completion
@@ -269,7 +269,7 @@ Both services are idempotent:
 ### Issue: Service runs but no progress
 
 **Solutions**:
-- Verify database has transfer data: `SELECT COUNT(*) FROM erc20_transfer`
+- Verify database has transfer data: `SELECT COUNT(*) FROM trc20_transfer`
 - Check that table schemas match requirements
 - Verify RPC_URL is set correctly
 

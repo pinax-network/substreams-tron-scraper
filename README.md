@@ -173,7 +173,7 @@ The project includes three schema files:
    - Uses ReplacingMergeTree for automatic deduplication
 
 3. **schema.0.offchain.erc20_balances.sql**: Balance tables
-   - `erc20_balances_rpc` - ERC20 token balances with block number tracking
+   - `trc20_balances_rpc` - ERC20 token balances with block number tracking
    - `native_balances_rpc` - Native token balances
 
 #### Connection Options
@@ -454,7 +454,7 @@ The backfill services are designed to run continuously until all historical data
 npm run backfill-erc20
 # If output says "Run again to continue backfill", repeat the command
 
-# Native backfill - processes up to 10,000 accounts per run  
+# Native backfill - processes up to 10,000 accounts per run
 npm run backfill-native
 # If output says "Run again to continue backfill", repeat the command
 ```

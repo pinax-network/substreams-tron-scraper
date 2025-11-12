@@ -26,33 +26,33 @@ describe('Setup CLI Integration Tests', () => {
 
     test('should parse SQL statements from all schema files', () => {
         let totalStatements = 0;
-        
+
         for (const file of schemaFiles) {
             const content = readFileSync(file, 'utf8');
             const statements = splitSqlStatements(content);
-            
+
             expect(statements.length).toBeGreaterThan(0);
             totalStatements += statements.length;
         }
-        
+
         expect(totalStatements).toBeGreaterThan(0);
     });
 
     test('should transform schemas for cluster deployment', () => {
         const clusterName = 'test_cluster';
-        
+
         for (const file of schemaFiles) {
             const content = readFileSync(file, 'utf8');
             const transformed = transformSqlForCluster(content, clusterName);
-            
+
             // Check for MergeTree engines
             const hasMergeTree = content.includes('MergeTree');
             const hasReplicated = transformed.includes('Replicated');
-            
+
             if (hasMergeTree) {
                 expect(hasReplicated).toBe(true);
             }
-            
+
             // Check for ON CLUSTER clause if there are CREATE or ALTER statements
             if (content.includes('CREATE') || content.includes('ALTER')) {
                 // Functions file might not have ON CLUSTER for all statements
@@ -65,18 +65,18 @@ describe('Setup CLI Integration Tests', () => {
     test('metadata schema should have expected statements', () => {
         const metadataContent = readFileSync('sql/schema.0.offchain.metadata.sql', 'utf8');
         const statements = splitSqlStatements(metadataContent);
-        
+
         const hasCreateTable = statements.some(s => s.includes('CREATE TABLE'));
         const hasAlterTable = statements.some(s => s.includes('ALTER TABLE'));
-        
+
         expect(hasCreateTable).toBe(true);
         expect(hasAlterTable).toBe(true);
     });
 
     test('should have expected table names', () => {
-        const expectedTables = ['metadata_rpc', 'erc20_balances_rpc', 'native_balances_rpc'];
+        const expectedTables = ['metadata_rpc', 'trc20_balances_rpc', 'native_balances_rpc'];
         const allContent = schemaFiles.map(f => readFileSync(f, 'utf8')).join('\n');
-        
+
         for (const table of expectedTables) {
             expect(allContent).toContain(table);
         }
@@ -85,7 +85,7 @@ describe('Setup CLI Integration Tests', () => {
     test('should have expected helper functions', () => {
         const functionsContent = readFileSync('sql/schema.0.functions.sql', 'utf8');
         const expectedFunctions = ['hex_to_string', 'hex_to_uint256', 'format_balance'];
-        
+
         for (const func of expectedFunctions) {
             expect(functionsContent).toContain(func);
         }

@@ -1,7 +1,7 @@
 import PQueue from 'p-queue';
 import { callContract, decodeUint256 } from '../lib/rpc';
 import { insert_balances, insert_error_balances } from '../src/insert';
-import { get_erc20_backfill_transfers } from '../src/queries';
+import { get_trc20_backfill_transfers } from '../src/queries';
 import { ProgressTracker } from '../lib/progress';
 import { CONCURRENCY, ENABLE_PROMETHEUS, PROMETHEUS_PORT } from '../lib/config';
 
@@ -14,7 +14,7 @@ if (ENABLE_PROMETHEUS) {
     console.log(`📊 Prometheus metrics enabled on port ${PROMETHEUS_PORT}`);
 }
 
-const transfers = await get_erc20_backfill_transfers();
+const transfers = await get_trc20_backfill_transfers();
 
 async function processBalanceOf(account: string, contract: string, block_num: number, tracker: ProgressTracker) {
     // get `balanceOf` RPC call for the account

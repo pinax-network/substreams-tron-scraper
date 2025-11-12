@@ -122,12 +122,6 @@ function addCommonOptions(command: Command): Command {
             'HTTP port for the Prometheus metrics endpoint. Accessible at http://localhost:<port>/metrics',
             process.env.PROMETHEUS_PORT || '9090'
         )
-        // Transfers Table Option
-        .option(
-            '--transfers-table <table>',
-            'Name of the transfers table to query. Options: transfers, native_transfer, trc20_transfer',
-            process.env.TRANSFERS_TABLE || 'transfers'
-        );
 }
 
 /**
