@@ -85,6 +85,25 @@ npm run backfill-native
 npm run test
 ```
 
+### Complete Workflow Example
+
+Here's a complete workflow for setting up and running the scraper:
+
+```bash
+# 1. Setup database schema
+npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.trc20_balances.sql
+
+# 2. Fetch token metadata
+npm run cli run metadata
+
+# 3. Start scraping TRC20 balances (incremental)
+npm run cli run trc20-balances
+
+# 4. Optionally backfill historical data in parallel
+npm run cli run trc20-backfill --concurrency 15
+npm run cli run native-backfill --concurrency 15
+```
+
 ## Services Overview
 
 This project includes two types of services:
