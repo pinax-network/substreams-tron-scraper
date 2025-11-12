@@ -15,12 +15,11 @@ Before running any services, you need to set up the database schema:
 
 ```bash
 # Deploy all schema files to ClickHouse
-npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.erc20_balances.sql
+npm run cli setup sql/schema.metadata.sql sql/schema.trc20_balances.sql
 
 # Or deploy them individually
-npm run cli setup sql/schema.0.functions.sql
-npm run cli setup sql/schema.0.offchain.metadata.sql
-npm run cli setup sql/schema.0.offchain.erc20_balances.sql
+npm run cli setup sql/schema.metadata.sql
+npm run cli setup sql/schema.trc20_balances.sql
 
 # Deploy to a ClickHouse cluster (adds ON CLUSTER and uses Replicated* engines)
 npm run cli setup sql/schema.*.sql --cluster my_cluster
@@ -46,21 +45,21 @@ npm run cli version
 # Run metadata RPC service
 npm run cli run metadata
 
-# Run ERC20 balances RPC service (incremental updates)
-npm run cli run erc20-balances
+# Run TRC20 balances RPC service (incremental updates)
+npm run cli run trc20-balances
 
 # Run Native balances RPC service (incremental updates)
 npm run cli run native-balances
 
-# Run ERC20 balances BACKFILL service (process all historical data)
-npm run cli run erc20-backfill
+# Run TRC20 balances BACKFILL service (process all historical data)
+npm run cli run trc20-backfill
 
 # Run Native balances BACKFILL service (process all historical data)
 npm run cli run native-backfill
 
 # Run with custom parameters
 npm run cli run metadata --concurrency 20 --enable-prometheus
-npm run cli run erc20-backfill --concurrency 15 --prometheus-port 8080
+npm run cli run trc20-backfill --concurrency 15 --prometheus-port 8080
 ```
 
 ### Using npm scripts (legacy)

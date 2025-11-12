@@ -7,7 +7,7 @@ import { CONCURRENCY, ENABLE_PROMETHEUS, PROMETHEUS_PORT } from '../lib/config';
 
 const queue = new PQueue({ concurrency: CONCURRENCY });
 
-console.log(`🚀 Starting ERC20 balances BACKFILL service with concurrency: ${CONCURRENCY}`);
+console.log(`🚀 Starting TRC20 balances BACKFILL service with concurrency: ${CONCURRENCY}`);
 console.log(`📝 This service processes transfers from highest to lowest block number`);
 console.log(`📝 It continues non-stop until the beginning of the chain`);
 if (ENABLE_PROMETHEUS) {

@@ -17,17 +17,17 @@ const SERVICES = {
         path: './services/metadata_rpc.ts',
         description: 'Fetch and store ERC-20 token metadata (name, symbol, decimals) from smart contracts'
     },
-    'erc20-balances': {
+    'trc20-balances': {
         path: './services/trc20_balances_rpc.ts',
-        description: 'Query and update ERC-20 token balances for accounts using the balanceOf() function'
+        description: 'Query and update TRC-20 token balances for accounts using the balanceOf() function'
     },
     'native-balances': {
         path: './services/native_balances_rpc.ts',
         description: 'Query and update native token balances for accounts on the EVM network'
     },
-    'erc20-backfill': {
+    'trc20-backfill': {
         path: './services/trc20_balances_backfill.ts',
-        description: 'Backfill historical ERC-20 token balances from highest to lowest block number'
+        description: 'Backfill historical TRC-20 token balances from highest to lowest block number'
     },
     'native-backfill': {
         path: './services/native_balances_backfill.ts',
@@ -200,9 +200,9 @@ const runCommand = program
 
 Services:
   metadata          ${SERVICES.metadata.description}
-  erc20-balances    ${SERVICES['erc20-balances'].description}
+  trc20-balances    ${SERVICES['trc20-balances'].description}
   native-balances   ${SERVICES['native-balances'].description}
-  erc20-backfill    ${SERVICES['erc20-backfill'].description}
+  trc20-backfill    ${SERVICES['trc20-backfill'].description}
   native-backfill   ${SERVICES['native-backfill'].description}
 
 Examples:
