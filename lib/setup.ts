@@ -9,6 +9,29 @@ export interface SetupOptions {
 }
 
 /**
+ * Query available clusters from ClickHouse
+ * @returns Array of cluster names
+ */
+export async function getAvailableClusters(): Promise<string[]> {
+    try {
+        const resultSet = await client.query({
+            query: 'SHOW CLUSTERS',
+            format: 'JSONEachRow',
+        });
+        const clusters: Array<{ cluster: string }> = await resultSet.json();
+        return clusters.map(row => row.cluster);
+    } catch (error) {
+        const err = error as Error;
+        console.error(`\n⚠️  Warning: Failed to query available clusters: ${err.message}`);
+        console.error('   This might be because:');
+        console.error('   - ClickHouse server is not configured with clusters');
+        console.error('   - Connection to ClickHouse failed');
+        console.error('   - Insufficient permissions to view clusters\n');
+        return [];
+    }
+}
+
+/**
  * Transform SQL statements to support ClickHouse clusters
  * - Adds ON CLUSTER clause to CREATE/ALTER statements
  * - Converts MergeTree engines to ReplicatedMergeTree

@@ -3,7 +3,8 @@ import { Command } from 'commander';
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
-import { executeSqlSetup } from './lib/setup';
+import { executeSqlSetup, getAvailableClusters } from './lib/setup';
+import prompts from 'prompts';
 
 // Read version from package.json
 const VERSION = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')).version;
@@ -241,8 +242,8 @@ const setupCommand = program
     .command('setup <files...>')
     .description('Deploy SQL schema files to ClickHouse database')
     .option(
-        '--cluster <name>',
-        'ClickHouse cluster name. Adds ON CLUSTER clause and converts to Replicated* table engines.'
+        '--cluster [name]',
+        'ClickHouse cluster name. Adds ON CLUSTER clause and converts to Replicated* table engines. If no name provided, shows available clusters to select from.'
     )
     .addHelpText('after', `
 
@@ -255,6 +256,7 @@ Cluster Support:
   - Adds 'ON CLUSTER <name>' to all CREATE/ALTER statements
   - Converts MergeTree engines to ReplicatedMergeTree
   - Converts ReplacingMergeTree to ReplicatedReplacingMergeTree
+  - Use --cluster without a name to interactively select from available clusters
 
 Examples:
   # Deploy single schema file
@@ -266,7 +268,10 @@ Examples:
   # Deploy all schema files
   $ npm run cli setup sql/schema.*.sql
 
-  # Deploy to a cluster
+  # Deploy to a cluster (interactive selection)
+  $ npm run cli setup sql/schema.0.functions.sql --cluster
+
+  # Deploy to a specific cluster
   $ npm run cli setup sql/schema.0.functions.sql --cluster my_cluster
 
   # Deploy all schemas with custom database
@@ -285,12 +290,50 @@ Examples:
         if (options.clickhousePassword) process.env.CLICKHOUSE_PASSWORD = options.clickhousePassword;
         if (options.clickhouseDatabase) process.env.CLICKHOUSE_DATABASE = options.clickhouseDatabase;
 
+        // Handle cluster parameter
+        let clusterName = options.cluster;
+        
+        // If --cluster flag is present but no value provided (true means flag without value)
+        if (clusterName === true) {
+            console.log('📊 Querying available clusters...\n');
+            const availableClusters = await getAvailableClusters();
+            
+            if (availableClusters.length === 0) {
+                console.error('❌ No clusters found or unable to query clusters.');
+                console.error('   Please provide a cluster name explicitly using --cluster <name>\n');
+                process.exit(1);
+            }
+            
+            console.log(`Found ${availableClusters.length} cluster(s):\n`);
+            
+            // Show interactive prompt to select cluster
+            const response = await prompts({
+                type: 'select',
+                name: 'cluster',
+                message: 'Select a cluster to deploy to:',
+                choices: availableClusters.map(cluster => ({
+                    title: cluster,
+                    value: cluster
+                })),
+                initial: 0
+            });
+            
+            // Handle user cancellation (Ctrl+C or ESC)
+            if (!response.cluster) {
+                console.log('\n⚠️  Cluster selection cancelled. Exiting...\n');
+                process.exit(0);
+            }
+            
+            clusterName = response.cluster;
+            console.log(`\n✓ Selected cluster: ${clusterName}\n`);
+        }
+
         // Resolve file paths
         const resolvedFiles = files.map(f => resolve(process.cwd(), f));
 
         try {
             await executeSqlSetup(resolvedFiles, {
-                cluster: options.cluster
+                cluster: clusterName === true ? undefined : clusterName
             });
             process.exit(0);
         } catch (error) {

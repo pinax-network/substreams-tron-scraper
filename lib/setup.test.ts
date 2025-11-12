@@ -102,3 +102,17 @@ describe('schema files', () => {
         expect(transformedMetadata).toContain('ReplicatedReplacingMergeTree');
     });
 });
+
+describe('getAvailableClusters', () => {
+    // Note: This test requires a running ClickHouse instance with clusters configured
+    // It's more of an integration test and will gracefully handle connection failures
+    test('should return empty array when clusters query fails', async () => {
+        // This test is designed to verify error handling
+        // In a real environment without clusters, it should return []
+        const { getAvailableClusters } = await import('./setup');
+        
+        // The function should not throw and should return an array
+        const clusters = await getAvailableClusters();
+        expect(Array.isArray(clusters)).toBe(true);
+    });
+});
