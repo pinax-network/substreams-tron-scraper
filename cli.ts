@@ -80,6 +80,37 @@ function addCommonOptions(command: Command): Command {
             'Number of concurrent RPC requests. Higher values = faster but may hit rate limits. Range: 1-50.',
             process.env.CONCURRENCY || '10'
         )
+        // Retry Configuration Options
+        .option(
+            '--max-retries <number>',
+            'Maximum number of retry attempts for failed RPC requests.',
+            process.env.MAX_RETRIES || '3'
+        )
+        .option(
+            '--base-delay-ms <number>',
+            'Base delay in milliseconds for exponential backoff between retries.',
+            process.env.BASE_DELAY_MS || '400'
+        )
+        .option(
+            '--jitter-min <number>',
+            'Minimum jitter multiplier for backoff delay (e.g., 0.7 = 70% of backoff).',
+            process.env.JITTER_MIN || '0.7'
+        )
+        .option(
+            '--jitter-max <number>',
+            'Maximum jitter multiplier for backoff delay (e.g., 1.3 = 130% of backoff).',
+            process.env.JITTER_MAX || '1.3'
+        )
+        .option(
+            '--max-delay-ms <number>',
+            'Maximum delay in milliseconds between retry attempts (cap on backoff).',
+            process.env.MAX_DELAY_MS || '30000'
+        )
+        .option(
+            '--timeout-ms <number>',
+            'Timeout in milliseconds for individual RPC requests.',
+            process.env.TIMEOUT_MS || '10000'
+        )
         // Monitoring Options
         .option(
             '--enable-prometheus',
@@ -120,6 +151,12 @@ function runService(serviceName: string, options: any) {
         CLICKHOUSE_DATABASE: options.clickhouseDatabase,
         NODE_URL: options.nodeUrl,
         CONCURRENCY: options.concurrency,
+        MAX_RETRIES: options.maxRetries,
+        BASE_DELAY_MS: options.baseDelayMs,
+        JITTER_MIN: options.jitterMin,
+        JITTER_MAX: options.jitterMax,
+        MAX_DELAY_MS: options.maxDelayMs,
+        TIMEOUT_MS: options.timeoutMs,
         ENABLE_PROMETHEUS: options.enablePrometheus ? 'true' : (process.env.ENABLE_PROMETHEUS || 'false'),
         PROMETHEUS_PORT: options.prometheusPort
     };

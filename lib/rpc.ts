@@ -1,12 +1,27 @@
 import { TronWeb } from "tronweb";
 import { keccak256, toUtf8Bytes, AbiCoder } from "ethers"; // ethers v6+
 import { sleep } from "bun";
+import PQueue from "p-queue";
 
 /** -----------------------------------------------------------------------
  *  Config
  *  ---------------------------------------------------------------------*/
 const DEFAULT_RETRIES = 3;
+const DEFAULT_BASE_DELAY_MS = 400;
+const DEFAULT_JITTER_MIN = 0.7; // 70% of backoff
+const DEFAULT_JITTER_MAX = 1.3; // 130% of backoff
+const DEFAULT_MAX_DELAY_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 const NODE_URL = process.env.NODE_URL || "https://tron-evm-rpc.publicnode.com";
+
+// Read retry config from environment variables
+const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || String(DEFAULT_RETRIES));
+const BASE_DELAY_MS = parseInt(process.env.BASE_DELAY_MS || String(DEFAULT_BASE_DELAY_MS));
+const JITTER_MIN = parseFloat(process.env.JITTER_MIN || String(DEFAULT_JITTER_MIN));
+const JITTER_MAX = parseFloat(process.env.JITTER_MAX || String(DEFAULT_JITTER_MAX));
+const MAX_DELAY_MS = parseInt(process.env.MAX_DELAY_MS || String(DEFAULT_MAX_DELAY_MS));
+const TIMEOUT_MS = parseInt(process.env.TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS));
 
 /** -----------------------------------------------------------------------
  *  Error + Retry helpers (from your reference)
@@ -70,16 +85,35 @@ function isRetryable(e?: any, status?: number, json?: any) {
   return false;
 }
 
+interface RetryOptions {
+  retries?: number;
+  baseDelayMs?: number;
+  timeoutMs?: number;
+  jitterMin?: number;
+  jitterMax?: number;
+  maxDelayMs?: number;
+}
+
 function toOptions(
-  retryOrOpts?: number | { retries?: number; baseDelayMs?: number; timeoutMs?: number; }
+  retryOrOpts?: number | RetryOptions
 ) {
   if (typeof retryOrOpts === "number") {
-    return { retries: retryOrOpts, baseDelayMs: 400, timeoutMs: 10_000 };
+    return {
+      retries: retryOrOpts,
+      baseDelayMs: BASE_DELAY_MS,
+      timeoutMs: TIMEOUT_MS,
+      jitterMin: JITTER_MIN,
+      jitterMax: JITTER_MAX,
+      maxDelayMs: MAX_DELAY_MS
+    };
   }
   return {
-    retries: retryOrOpts?.retries ?? DEFAULT_RETRIES,
-    baseDelayMs: retryOrOpts?.baseDelayMs ?? 400,
-    timeoutMs: retryOrOpts?.timeoutMs ?? 10_000
+    retries: retryOrOpts?.retries ?? MAX_RETRIES,
+    baseDelayMs: retryOrOpts?.baseDelayMs ?? BASE_DELAY_MS,
+    timeoutMs: retryOrOpts?.timeoutMs ?? TIMEOUT_MS,
+    jitterMin: retryOrOpts?.jitterMin ?? JITTER_MIN,
+    jitterMax: retryOrOpts?.jitterMax ?? JITTER_MAX,
+    maxDelayMs: retryOrOpts?.maxDelayMs ?? MAX_DELAY_MS
   };
 }
 
@@ -117,14 +151,16 @@ const normalizeForType = (type: string, value: any) => {
 /** -----------------------------------------------------------------------
  *  Generic JSON-RPC call with retry logic
  *  ---------------------------------------------------------------------*/
-async function makeJsonRpcCall(
+
+/**
+ * Execute a single JSON-RPC request without retry logic
+ * This function performs one attempt at making an RPC call
+ */
+async function makeJsonRpcRequest(
   method: string,
   params: any[],
-  retryOrOpts?: number | { retries?: number; baseDelayMs?: number; timeoutMs?: number; },
-  errorContext?: string
+  timeoutMs: number
 ): Promise<string> {
-  const { retries, baseDelayMs, timeoutMs } = toOptions(retryOrOpts);
-
   const body = {
     jsonrpc: "2.0",
     method,
@@ -132,52 +168,80 @@ async function makeJsonRpcCall(
     id: 1
   };
 
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(NODE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+
+    let json: any = null;
+    try {
+      json = await res.json();
+    } catch (parseErr) {
+      // Non-JSON or empty response
+      if (isRetryable(parseErr, res.status)) {
+        throw new RetryableError(`Non-JSON response (status ${res.status})`);
+      }
+      throw new Error(`Failed to parse JSON (status ${res.status})`);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      if (isRetryable(null, res.status, json)) {
+        throw new RetryableError(`HTTP ${res.status}`);
+      }
+      throw new Error(`HTTP ${res.status}: ${JSON.stringify(json)}`);
+    }
+
+    if (json?.error) {
+      if (isRetryable(null, res.status, json)) {
+        throw new RetryableError(`RPC error ${json.error.code}: ${json.error.message}`);
+      }
+      throw new Error(`RPC error ${json.error.code}: ${json.error.message}`);
+    }
+
+    return json?.result || "";
+
+  } catch (err: any) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+/**
+ * Make a JSON-RPC call with retry logic using p-queue
+ * This function manages retries with exponential backoff and jitter
+ */
+async function makeJsonRpcCall(
+  method: string,
+  params: any[],
+  retryOrOpts?: number | RetryOptions,
+  errorContext?: string
+): Promise<string> {
+  const { retries, baseDelayMs, timeoutMs, jitterMin, jitterMax, maxDelayMs } = toOptions(retryOrOpts);
+
   const attempts = Math.max(1, retries);
   let lastError: any;
 
+  // Create a queue with concurrency 1 for sequential retry attempts
+  const queue = new PQueue({ concurrency: 1 });
+
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-
     try {
-      const res = await fetch(NODE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: ctrl.signal
+      // Use p-queue to manage the request
+      const result = await queue.add(async () => {
+        return await makeJsonRpcRequest(method, params, timeoutMs);
       });
-
-      let json: any = null;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        // Non-JSON or empty response
-        if (isRetryable(parseErr, res.status)) {
-          throw new RetryableError(`Non-JSON response (status ${res.status})`);
-        }
-        throw new Error(`Failed to parse JSON (status ${res.status})`);
-      } finally {
-        clearTimeout(timer);
-      }
-
-      if (!res.ok) {
-        if (isRetryable(null, res.status, json)) {
-          throw new RetryableError(`HTTP ${res.status}`);
-        }
-        throw new Error(`HTTP ${res.status}: ${JSON.stringify(json)}`);
-      }
-
-      if (json?.error) {
-        if (isRetryable(null, res.status, json)) {
-          throw new RetryableError(`RPC error ${json.error.code}: ${json.error.message}`);
-        }
-        throw new Error(`RPC error ${json.error.code}: ${json.error.message}`);
-      }
-
-      return json?.result || "";
+      
+      return result as string;
 
     } catch (err: any) {
-      clearTimeout(timer);
       lastError = err;
 
       const retryable = err instanceof RetryableError || isRetryable(err);
@@ -188,8 +252,9 @@ async function makeJsonRpcCall(
 
       // Exponential backoff with jitter
       const backoffMs = Math.floor(baseDelayMs * Math.pow(2, attempt - 1));
-      const jitter = Math.floor(backoffMs * (0.7 + Math.random() * 0.6)); // 70%–130%
-      const delay = Math.min(30_000, jitter); // cap individual delay
+      const jitterRange = jitterMax - jitterMin;
+      const jitter = Math.floor(backoffMs * (jitterMin + Math.random() * jitterRange));
+      const delay = Math.min(maxDelayMs, jitter);
       await sleep(delay);
       continue;
     }
@@ -206,7 +271,7 @@ async function makeJsonRpcCall(
 // Overloads for TS ergonomics:
 // 1) Old style: callContract(contract, "decimals()", retryOrOpts?)
 // 2) New style: callContract(contract, "balanceOf(address)", [holder], retryOrOpts?)
-type RetryOpts = number | { retries?: number; baseDelayMs?: number; timeoutMs?: number; };
+type RetryOpts = number | RetryOptions;
 
 export async function callContract(
   contract: string,
