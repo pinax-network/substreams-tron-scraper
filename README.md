@@ -101,6 +101,12 @@ cp .env.example .env
 - `CLICKHOUSE_DATABASE` - ClickHouse database name (default: `default`)
 - `NODE_URL` - TRON RPC node URL (default: `https://tron-evm-rpc.publicnode.com`)
 - `CONCURRENCY` - Number of concurrent RPC requests (default: `10`)
+- `MAX_RETRIES` - Maximum number of retry attempts for failed RPC requests (default: `3`)
+- `BASE_DELAY_MS` - Base delay in milliseconds for exponential backoff between retries (default: `400`)
+- `JITTER_MIN` - Minimum jitter multiplier for backoff delay (default: `0.7`, meaning 70% of backoff)
+- `JITTER_MAX` - Maximum jitter multiplier for backoff delay (default: `1.3`, meaning 130% of backoff)
+- `MAX_DELAY_MS` - Maximum delay in milliseconds between retry attempts (default: `30000`)
+- `TIMEOUT_MS` - Timeout in milliseconds for individual RPC requests (default: `10000`)
 - `ENABLE_PROMETHEUS` - Enable Prometheus metrics endpoint (default: `false`, set to `true` to enable)
 - `PROMETHEUS_PORT` - Prometheus metrics HTTP port (default: `9090`)
 
@@ -119,6 +125,22 @@ Example:
 CONCURRENCY=5 npm run start
 ```
 
+### Retry Configuration
+
+The retry mechanism uses exponential backoff with jitter to handle transient RPC failures gracefully:
+
+- **MAX_RETRIES**: Controls how many times to retry a failed request (default: 3)
+- **BASE_DELAY_MS**: Starting delay between retries, which grows exponentially (default: 400ms)
+- **JITTER_MIN/MAX**: Add randomness to retry delays to prevent thundering herd (default: 70%-130%)
+- **MAX_DELAY_MS**: Cap on the maximum delay between retries (default: 30 seconds)
+- **TIMEOUT_MS**: How long to wait for a single RPC request before timing out (default: 10 seconds)
+
+Example:
+```bash
+# More aggressive retry settings for unreliable networks
+MAX_RETRIES=5 BASE_DELAY_MS=1000 MAX_DELAY_MS=60000 npm run start
+```
+
 ## CLI Options
 
 The CLI supports passing configuration via command-line flags, which override environment variables:
@@ -131,6 +153,12 @@ The CLI supports passing configuration via command-line flags, which override en
 --clickhouse-database <db>     ClickHouse database name
 --node-url <url>               TRON RPC node URL
 --concurrency <num>            Number of concurrent RPC requests
+--max-retries <num>            Maximum number of retry attempts
+--base-delay-ms <num>          Base delay for exponential backoff
+--jitter-min <num>             Minimum jitter multiplier
+--jitter-max <num>             Maximum jitter multiplier
+--max-delay-ms <num>           Maximum delay between retries
+--timeout-ms <num>             Timeout for individual RPC requests
 --enable-prometheus            Enable Prometheus metrics endpoint
 --prometheus-port <port>       Prometheus metrics HTTP port
 
@@ -138,6 +166,7 @@ The CLI supports passing configuration via command-line flags, which override en
 npm run cli run metadata \
   --clickhouse-url http://localhost:8123 \
   --concurrency 20 \
+  --max-retries 5 \
   --enable-prometheus \
   --prometheus-port 8080
 
