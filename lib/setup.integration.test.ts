@@ -14,7 +14,7 @@ describe('Setup CLI Integration Tests', () => {
     const schemaFiles = [
         'sql/schema.0.functions.sql',
         'sql/schema.0.offchain.metadata.sql',
-        'sql/schema.0.offchain.trc20_balances.sql'
+        'sql/schema.0.offchain.erc20_balances.sql'
     ];
 
     test('all schema files should exist', () => {
@@ -74,7 +74,7 @@ describe('Setup CLI Integration Tests', () => {
     });
 
     test('should have expected table names', () => {
-        const expectedTables = ['metadata_rpc', 'trc20_balances_rpc', 'native_balances_rpc'];
+        const expectedTables = ['metadata_rpc', 'erc20_balances_rpc', 'native_balances_rpc'];
         const allContent = schemaFiles.map(f => readFileSync(f, 'utf8')).join('\n');
         
         for (const table of expectedTables) {

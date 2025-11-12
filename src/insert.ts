@@ -31,7 +31,7 @@ export async function insert_balances(row: {
     block_num: number;
 }) {
     client.insert({
-        table: 'trc20_balances_rpc',
+        table: 'erc20_balances_rpc',
         format: 'JSONEachRow',
         values: [row],
     });
@@ -47,7 +47,7 @@ export async function insert_error_balances(contract: string, account: string, e
         values.block_num = block_num;
     }
     client.insert({
-        table: 'trc20_balances_rpc',
+        table: 'erc20_balances_rpc',
         format: 'JSONEachRow',
         values: [values],
     });

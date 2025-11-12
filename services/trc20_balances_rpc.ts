@@ -7,7 +7,7 @@ import { CONCURRENCY, ENABLE_PROMETHEUS, PROMETHEUS_PORT } from '../lib/config';
 
 const queue = new PQueue({ concurrency: CONCURRENCY });
 
-console.log(`🚀 Starting TRC20 balances RPC service with concurrency: ${CONCURRENCY}`);
+console.log(`🚀 Starting ERC20 balances RPC service with concurrency: ${CONCURRENCY}`);
 if (ENABLE_PROMETHEUS) {
     console.log(`📊 Prometheus metrics enabled on port ${PROMETHEUS_PORT}`);
 }
@@ -67,7 +67,7 @@ console.log(``);
 
 // Initialize progress tracker
 const tracker = new ProgressTracker({
-    serviceName: 'TRC20 Balances',
+    serviceName: 'ERC20 Balances',
     totalTasks,
     enablePrometheus: ENABLE_PROMETHEUS,
     prometheusPort: PROMETHEUS_PORT
