@@ -1,4 +1,4 @@
-# Substreams Tron Scraper
+# Substreams EVM Scraper
 
 ## Features
 
@@ -15,12 +15,12 @@ Before running any services, you need to set up the database schema:
 
 ```bash
 # Deploy all schema files to ClickHouse
-npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.trc20_balances.sql
+npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.erc20_balances.sql
 
 # Or deploy them individually
 npm run cli setup sql/schema.0.functions.sql
 npm run cli setup sql/schema.0.offchain.metadata.sql
-npm run cli setup sql/schema.0.offchain.trc20_balances.sql
+npm run cli setup sql/schema.0.offchain.erc20_balances.sql
 
 # Deploy to a ClickHouse cluster (adds ON CLUSTER and uses Replicated* engines)
 npm run cli setup sql/schema.*.sql --cluster my_cluster
@@ -46,21 +46,21 @@ npm run cli version
 # Run metadata RPC service
 npm run cli run metadata
 
-# Run TRC20 balances RPC service (incremental updates)
-npm run cli run trc20-balances
+# Run ERC20 balances RPC service (incremental updates)
+npm run cli run erc20-balances
 
 # Run Native balances RPC service (incremental updates)
 npm run cli run native-balances
 
-# Run TRC20 balances BACKFILL service (process all historical data)
-npm run cli run trc20-backfill
+# Run ERC20 balances BACKFILL service (process all historical data)
+npm run cli run erc20-backfill
 
 # Run Native balances BACKFILL service (process all historical data)
 npm run cli run native-backfill
 
 # Run with custom parameters
 npm run cli run metadata --concurrency 20 --enable-prometheus
-npm run cli run trc20-backfill --concurrency 15 --prometheus-port 8080
+npm run cli run erc20-backfill --concurrency 15 --prometheus-port 8080
 ```
 
 ### Using npm scripts (legacy)
@@ -69,14 +69,14 @@ npm run cli run trc20-backfill --concurrency 15 --prometheus-port 8080
 # Run metadata RPC service
 npm run start
 
-# Run TRC20 balances RPC service (incremental updates)
+# Run ERC20 balances RPC service (incremental updates)
 npm run balances
 
 # Run Native balances RPC service (incremental updates)
 npm run native-balances
 
-# Run TRC20 balances BACKFILL service (process all historical data)
-npm run backfill-trc20
+# Run ERC20 balances BACKFILL service (process all historical data)
+npm run backfill-erc20
 
 # Run Native balances BACKFILL service (process all historical data)
 npm run backfill-native
@@ -91,16 +91,16 @@ Here's a complete workflow for setting up and running the scraper:
 
 ```bash
 # 1. Setup database schema
-npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.trc20_balances.sql
+npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.erc20_balances.sql
 
 # 2. Fetch token metadata
 npm run cli run metadata
 
-# 3. Start scraping TRC20 balances (incremental)
-npm run cli run trc20-balances
+# 3. Start scraping ERC20 balances (incremental)
+npm run cli run erc20-balances
 
 # 4. Optionally backfill historical data in parallel
-npm run cli run trc20-backfill --concurrency 15
+npm run cli run erc20-backfill --concurrency 15
 npm run cli run native-backfill --concurrency 15
 ```
 
@@ -109,11 +109,11 @@ npm run cli run native-backfill --concurrency 15
 This project includes two types of services:
 
 ### Incremental Services
-- **TRC20 Balances RPC** (`npm run balances`): Processes only new transfers since last run
+- **ERC20 Balances RPC** (`npm run balances`): Processes only new transfers since last run
 - **Native Balances RPC** (`npm run native-balances`): Processes only new accounts without balances
 
 ### Backfill Services
-- **TRC20 Balances Backfill** (`npm run backfill-trc20`): Processes all historical transfers from newest to oldest blocks
+- **ERC20 Balances Backfill** (`npm run backfill-erc20`): Processes all historical transfers from newest to oldest blocks
 - **Native Balances Backfill** (`npm run backfill-native`): Processes all historical accounts from newest to oldest blocks
 
 **When to use Backfill Services:**
@@ -136,7 +136,7 @@ The `setup` command deploys SQL schema files to your ClickHouse database. This i
 
 ```bash
 # Deploy all schema files
-npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.trc20_balances.sql
+npm run cli setup sql/schema.0.functions.sql sql/schema.0.offchain.metadata.sql sql/schema.0.offchain.erc20_balances.sql
 
 # Deploy individual files
 npm run cli setup sql/schema.0.functions.sql
@@ -157,7 +157,7 @@ npm run cli setup sql/schema.*.sql --cluster my_cluster
 npm run cli setup sql/schema.*.sql \
   --cluster production_cluster \
   --clickhouse-url http://clickhouse-node1:8123 \
-  --clickhouse-database tron_data
+  --clickhouse-database evm_data
 ```
 
 #### Schema Files
@@ -173,9 +173,9 @@ The project includes three schema files:
    - Stores token name, symbol, and decimals from smart contracts
    - Uses ReplacingMergeTree for automatic deduplication
 
-3. **schema.0.offchain.trc20_balances.sql**: Balance tables
-   - `trc20_balances_rpc` - TRC20 token balances with block number tracking
-   - `native_balances_rpc` - Native TRX balances
+3. **schema.0.offchain.erc20_balances.sql**: Balance tables
+   - `erc20_balances_rpc` - ERC20 token balances with block number tracking
+   - `native_balances_rpc` - Native token balances
 
 #### Connection Options
 
@@ -203,7 +203,7 @@ cp .env.example .env
 - `CLICKHOUSE_USERNAME` - ClickHouse username (default: `default`)
 - `CLICKHOUSE_PASSWORD` - ClickHouse password
 - `CLICKHOUSE_DATABASE` - ClickHouse database name (default: `default`)
-- `NODE_URL` - TRON RPC node URL (default: `https://tron-evm-rpc.publicnode.com`)
+- `NODE_URL` - EVM RPC node URL (default: `https://tron-evm-rpc.publicnode.com`)
 - `CONCURRENCY` - Number of concurrent RPC requests (default: `10`)
 - `MAX_RETRIES` - Maximum number of retry attempts for failed RPC requests (default: `3`)
 - `BASE_DELAY_MS` - Base delay in milliseconds for exponential backoff between retries (default: `400`)
@@ -255,7 +255,7 @@ The CLI supports passing configuration via command-line flags, which override en
 --clickhouse-username <user>   ClickHouse username
 --clickhouse-password <pass>   ClickHouse password
 --clickhouse-database <db>     ClickHouse database name
---node-url <url>               TRON RPC node URL
+--node-url <url>               EVM RPC node URL
 --concurrency <num>            Number of concurrent RPC requests
 --max-retries <num>            Maximum number of retry attempts
 --base-delay-ms <num>          Base delay for exponential backoff
@@ -275,7 +275,7 @@ npm run cli run metadata \
   --prometheus-port 8080
 
 # Example: Run backfill services with custom settings
-npm run cli run trc20-backfill --concurrency 15
+npm run cli run erc20-backfill --concurrency 15
 npm run cli run native-backfill --enable-prometheus --prometheus-port 9091
 ```
 
@@ -315,20 +315,20 @@ The project includes a Dockerfile for running the CLI in a containerized environ
 ### Building the Docker Image
 
 ```bash
-docker build -t substreams-tron-scraper .
+docker build -t substreams-evm-scraper .
 ```
 
 ### Running with Docker
 
 ```bash
 # Show help
-docker run substreams-tron-scraper help
+docker run substreams-evm-scraper help
 
 # List services
-docker run substreams-tron-scraper list
+docker run substreams-evm-scraper list
 
 # Show version
-docker run substreams-tron-scraper version
+docker run substreams-evm-scraper version
 
 # Run a service with environment variables
 docker run \
@@ -337,21 +337,21 @@ docker run \
   -e CLICKHOUSE_PASSWORD=password \
   -e NODE_URL=https://tron-evm-rpc.publicnode.com \
   -e CONCURRENCY=10 \
-  substreams-tron-scraper run metadata
+  substreams-evm-scraper run metadata
 
 # Run backfill services
 docker run \
   -e CLICKHOUSE_URL=http://clickhouse:8123 \
   -e CONCURRENCY=15 \
-  substreams-tron-scraper run trc20-backfill
+  substreams-evm-scraper run erc20-backfill
 
 docker run \
   -e CLICKHOUSE_URL=http://clickhouse:8123 \
   -e CONCURRENCY=15 \
-  substreams-tron-scraper run native-backfill
+  substreams-evm-scraper run native-backfill
 
 # Run with command-line flags
-docker run substreams-tron-scraper run trc20-balances --concurrency 20 --enable-prometheus
+docker run substreams-evm-scraper run erc20-balances --concurrency 20 --enable-prometheus
 ```
 
 ### Docker Compose Example
@@ -371,7 +371,7 @@ services:
       - CONCURRENCY=10
     command: run metadata
 
-  trc20-balances-scraper:
+  erc20-balances-scraper:
     build: .
     environment:
       - CLICKHOUSE_URL=http://clickhouse:8123
@@ -380,10 +380,10 @@ services:
       - CLICKHOUSE_DATABASE=default
       - NODE_URL=https://tron-evm-rpc.publicnode.com
       - CONCURRENCY=10
-    command: run trc20-balances
+    command: run erc20-balances
 
   # Backfill services
-  trc20-backfill-scraper:
+  erc20-backfill-scraper:
     build: .
     environment:
       - CLICKHOUSE_URL=http://clickhouse:8123
@@ -392,7 +392,7 @@ services:
       - CLICKHOUSE_DATABASE=default
       - NODE_URL=https://tron-evm-rpc.publicnode.com
       - CONCURRENCY=15
-    command: run trc20-backfill
+    command: run erc20-backfill
 
   native-backfill-scraper:
     build: .
@@ -445,8 +445,8 @@ For detailed information about the backfill implementation, see [BACKFILL.md](./
 The backfill services are designed to run continuously until all historical data is processed:
 
 ```bash
-# TRC20 backfill - processes up to 10,000 transfers per run
-npm run backfill-trc20
+# ERC20 backfill - processes up to 10,000 transfers per run
+npm run backfill-erc20
 # If output says "Run again to continue backfill", repeat the command
 
 # Native backfill - processes up to 10,000 accounts per run  
