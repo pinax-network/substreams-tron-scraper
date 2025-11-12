@@ -6,18 +6,18 @@ The backfill services are designed to process historical balance data from the e
 
 ## Services
 
-### 1. TRC20 Balances Backfill (`npm run backfill-trc20`)
+### 1. ERC20 Balances Backfill (`npm run backfill-erc20`)
 
-**Purpose**: Process all historical TRC20 token transfers to populate balance data.
+**Purpose**: Process all historical ERC20 token transfers to populate balance data.
 
 **How it works**:
-1. Queries the maximum block number from `trc20_transfer` table
+1. Queries the maximum block number from `erc20_transfer` table
 2. Identifies accounts that don't have balances at the maximum block (incomplete)
 3. Processes transfers from highest to lowest block number
 4. Queries RPC for balance at each transfer's block number
-5. Stores results in `trc20_balances_rpc` table with block_num
+5. Stores results in `erc20_balances_rpc` table with block_num
 
-**SQL Query** (`sql/get_trc20_backfill_transfers.sql`):
+**SQL Query** (`sql/get_erc20_backfill_transfers.sql`):
 ```sql
 -- Find max block number
 -- Get balances that are already at max block (complete)
@@ -33,12 +33,12 @@ The backfill services are designed to process historical balance data from the e
 
 ### 2. Native Balances Backfill (`npm run backfill-native`)
 
-**Purpose**: Process all historical accounts to populate native TRX balance data.
+**Purpose**: Process all historical accounts to populate native token balance data.
 
 **How it works**:
-1. Identifies accounts from `trc20_transfer_agg` that don't have native balances
+1. Identifies accounts from `erc20_transfer_agg` that don't have native balances
 2. Orders accounts by their last seen block number (highest first)
-3. Queries RPC for current native TRX balance
+3. Queries RPC for current native token balance
 4. Stores results in `native_balances_rpc` table
 
 **SQL Query** (`sql/get_native_backfill_accounts.sql`):
@@ -64,13 +64,13 @@ The backfill services are designed to process historical balance data from the e
 | **Frequency** | Run periodically | Run until complete |
 
 ### Incremental Services (Existing)
-- `npm run balances` - TRC20 balances
+- `npm run balances` - ERC20 balances
 - `npm run native-balances` - Native balances
 - Only process transfers newer than last known block per account
 - Efficient for keeping data up-to-date
 
 ### Backfill Services (New)
-- `npm run backfill-trc20` - TRC20 balances backfill
+- `npm run backfill-erc20` - ERC20 balances backfill
 - `npm run backfill-native` - Native balances backfill
 - Process ALL data from highest block backward
 - Efficient for filling historical gaps
@@ -81,9 +81,9 @@ The backfill services are designed to process historical balance data from the e
 
 ```bash
 # Step 1: Run backfill to process historical data
-npm run backfill-trc20
+npm run backfill-erc20
 # Output: "Run again to continue backfill" if more data to process
-npm run backfill-trc20
+npm run backfill-erc20
 # Repeat until: "Backfill complete! Processed all available transfers."
 
 # Step 2: Run native balances backfill
@@ -99,7 +99,7 @@ npm run native-balances  # Daily
 
 ```bash
 # Run backfill to catch any missed accounts
-npm run backfill-trc20
+npm run backfill-erc20
 # Will skip accounts already complete and process only incomplete ones
 
 npm run backfill-native
@@ -113,7 +113,7 @@ npm run backfill-native
 npm run balances
 
 # Terminal 2: Backfill historical data simultaneously
-npm run backfill-trc20
+npm run backfill-erc20
 
 # Terminal 3: Backfill native balances
 npm run backfill-native
@@ -125,19 +125,19 @@ npm run backfill-native
 
 Both incremental and backfill services use `block_num` to track progress:
 
-- **TRC20 Balances**: Stores the block number of the transfer that triggered the balance query
+- **ERC20 Balances**: Stores the block number of the transfer that triggered the balance query
 - **Native Balances**: Doesn't store block_num (current balance is sufficient)
 
 ### Skip Logic
 
-**Backfill TRC20**:
+**Backfill ERC20**:
 ```sql
 WHERE (b_to.account IS NULL) OR (b_from.account IS NULL)
 ```
 - Only processes accounts that DON'T have a balance at the maximum block
 - Assumes if an account has a balance at max block, it's complete
 
-**Incremental TRC20**:
+**Incremental ERC20**:
 ```sql
 WHERE (t.block_num > lb_to.last_block_num) OR (lb_to.last_block_num IS NULL)
 ```
@@ -155,7 +155,7 @@ WHERE (t.block_num > lb_to.last_block_num) OR (lb_to.last_block_num IS NULL)
 Both services provide comprehensive progress tracking:
 
 ```
-🚀 Starting TRC20 balances BACKFILL service with concurrency: 10
+🚀 Starting ERC20 balances BACKFILL service with concurrency: 10
 📝 This service processes transfers from highest to lowest block number
 📝 It continues non-stop until the beginning of the chain
 
@@ -191,7 +191,7 @@ Access at: `http://localhost:9090/metrics`
 
 Both services require:
 
-**trc20_balances_rpc**:
+**erc20_balances_rpc**:
 - `block_num` column (UInt32)
 - `is_ok` column (to filter successful queries)
 - Indexes on `contract`, `account`, `block_num`
@@ -233,10 +233,10 @@ Both services handle errors gracefully:
 
 ```bash
 # See how many transfers still need processing
-echo "SELECT COUNT(*) FROM trc20_transfer WHERE block_num > (SELECT MAX(block_num) FROM trc20_balances_rpc)" | clickhouse-client
+echo "SELECT COUNT(*) FROM erc20_transfer WHERE block_num > (SELECT MAX(block_num) FROM erc20_balances_rpc)" | clickhouse-client
 
 # See how many accounts need native balances
-echo "SELECT COUNT(DISTINCT account) FROM trc20_transfer_agg WHERE account NOT IN (SELECT account FROM native_balances_rpc)" | clickhouse-client
+echo "SELECT COUNT(DISTINCT account) FROM erc20_transfer_agg WHERE account NOT IN (SELECT account FROM native_balances_rpc)" | clickhouse-client
 ```
 
 ### Verify Completion
@@ -269,7 +269,7 @@ Both services are idempotent:
 ### Issue: Service runs but no progress
 
 **Solutions**:
-- Verify database has transfer data: `SELECT COUNT(*) FROM trc20_transfer`
+- Verify database has transfer data: `SELECT COUNT(*) FROM erc20_transfer`
 - Check that table schemas match requirements
 - Verify RPC_URL is set correctly
 

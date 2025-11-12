@@ -64,7 +64,7 @@ function isRetryable(e?: any, status?: number, json?: any) {
   // Known transient-ish codes
   if (typeof code === "number" && [-32000, -32001, -32002, -32603].includes(code)) return true;
 
-  // IMPORTANT: some TRON nodes behind LBs return -32600 with a capability message
+  // IMPORTANT: some EVM nodes behind LBs return -32600 with a capability message
   // Example: "this node does not support constant"
   if (code === -32600 && (jmsg.includes("does not support constant") || jmsg.includes("unsupported") || jmsg.includes("method not found"))) {
     return true; // retry to hit a different backend node
@@ -120,11 +120,11 @@ function toOptions(
 }
 
 /** -----------------------------------------------------------------------
- *  ABI + TRON address helpers (new)
+ *  ABI + EVM address helpers
  *  ---------------------------------------------------------------------*/
 export const abi = AbiCoder.defaultAbiCoder();
 
-// Accepts TRON base58 ("T...") or 0x-hex, returns 0x-hex (20-byte EVM)
+// Accepts base58 ("T...") or 0x-hex, returns 0x-hex (20-byte EVM)
 const toEvmHexAddress = (a: string) => {
   if (!a) throw new Error("empty address");
   if (a.startsWith("0x")) return a.toLowerCase();
@@ -306,7 +306,7 @@ export async function callContract(
   // 4-byte selector
   const selector = "0x" + keccak256(toUtf8Bytes(signature)).slice(2, 10);
 
-  // Contract address: TRON base58 -> 0xEVM (strip 41 prefix)
+  // Contract address: EVM base58/hex conversion (strip 41 prefix if present)
   const to = `0x${TronWeb.address.toHex(contract).replace(/^41/i, "")}`;
 
   // ABI-encode args (if any)
@@ -342,13 +342,13 @@ export function decodeUint256(hexNo0x: string): bigint {
 }
 
 /** -----------------------------------------------------------------------
- *  getNativeBalance - Get native TRX balance for an account
+ *  getNativeBalance - Get native token balance for an account
  *  ---------------------------------------------------------------------*/
 export async function getNativeBalance(
   account: string,
   retryOrOpts?: RetryOpts
 ): Promise<string> {
-  // Convert TRON base58 address to EVM hex format
+  // Convert base58 address to EVM hex format
   const address = toEvmHexAddress(account);
 
   const hexValue = await makeJsonRpcCall(

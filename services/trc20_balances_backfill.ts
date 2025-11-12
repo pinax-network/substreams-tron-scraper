@@ -1,20 +1,20 @@
 import PQueue from 'p-queue';
 import { callContract, decodeUint256 } from '../lib/rpc';
 import { insert_balances, insert_error_balances } from '../src/insert';
-import { get_trc20_backfill_transfers } from '../src/queries';
+import { get_erc20_backfill_transfers } from '../src/queries';
 import { ProgressTracker } from '../lib/progress';
 import { CONCURRENCY, ENABLE_PROMETHEUS, PROMETHEUS_PORT } from '../lib/config';
 
 const queue = new PQueue({ concurrency: CONCURRENCY });
 
-console.log(`🚀 Starting TRC20 balances BACKFILL service with concurrency: ${CONCURRENCY}`);
+console.log(`🚀 Starting ERC20 balances BACKFILL service with concurrency: ${CONCURRENCY}`);
 console.log(`📝 This service processes transfers from highest to lowest block number`);
 console.log(`📝 It continues non-stop until the beginning of the chain`);
 if (ENABLE_PROMETHEUS) {
     console.log(`📊 Prometheus metrics enabled on port ${PROMETHEUS_PORT}`);
 }
 
-const transfers = await get_trc20_backfill_transfers();
+const transfers = await get_erc20_backfill_transfers();
 
 async function processBalanceOf(account: string, contract: string, block_num: number, tracker: ProgressTracker) {
     // get `balanceOf` RPC call for the account
@@ -69,7 +69,7 @@ console.log(``);
 
 // Initialize progress tracker
 const tracker = new ProgressTracker({
-    serviceName: 'TRC20 Balances Backfill',
+    serviceName: 'ERC20 Balances Backfill',
     totalTasks,
     enablePrometheus: ENABLE_PROMETHEUS,
     prometheusPort: PROMETHEUS_PORT

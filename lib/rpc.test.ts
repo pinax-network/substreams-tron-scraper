@@ -3,13 +3,13 @@ import { abi, callContract, decodeUint256 } from "./rpc";
 
 /**
  * Tests for RPC decoders and helpers
- * Note: These tests require network access to TRON RPC endpoints
+ * Note: These tests require network access to EVM RPC endpoints
  */
 
 describe('RPC decoders', () => {
     test('should decode contract data', async () => {
-        const log_address = "TCCA2WH8e1EJEUNkt1FNwmEjWWbgZm28vb"; // TRC-20 contract address
-        const account = "TXFBqBbqJommqZf7BV8NNYzePh97UmJodJ"; // TRON address
+        const log_address = "TCCA2WH8e1EJEUNkt1FNwmEjWWbgZm28vb"; // ERC-20 contract address
+        const account = "TXFBqBbqJommqZf7BV8NNYzePh97UmJodJ"; // EVM address
 
         try {
             // decimals()

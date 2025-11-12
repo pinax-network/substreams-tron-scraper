@@ -51,8 +51,8 @@ export async function get_accounts_for_native_balances() {
     return result.data.map(row => row.account);
 }
 
-export async function get_trc20_backfill_transfers() {
-    let sql = await bun.file("./sql/get_trc20_backfill_transfers.sql").text();
+export async function get_erc20_backfill_transfers() {
+    let sql = await bun.file("./sql/get_erc20_backfill_transfers.sql").text();
     sql = sql.replace(/trc20_transfer/g, TRANSFERS_TABLE);
     const result = await query<{ log_address: string, from: string, to: string, block_num: number }>(sql);
     return result.data;

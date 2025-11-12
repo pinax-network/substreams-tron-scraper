@@ -88,7 +88,7 @@ describe('schema files', () => {
     });
 
     test('should parse balances schema', async () => {
-        const balancesSql = await Bun.file('./sql/schema.0.offchain.trc20_balances.sql').text();
+        const balancesSql = await Bun.file('./sql/schema.0.offchain.erc20_balances.sql').text();
         const balancesStatements = splitSqlStatements(balancesSql);
         
         expect(balancesStatements.length).toBeGreaterThan(0);
