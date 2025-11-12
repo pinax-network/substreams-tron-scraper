@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS metadata_rpc (
     decimals_hex String DEFAULT '',
     
     -- Success/error tracking
-    is_ok UInt8 DEFAULT if(error = '', 1, 0),
+    is_ok UInt8 MATERIALIZED if(error = '', 1, 0),
     error String DEFAULT '',
     
     -- Timestamp of last update

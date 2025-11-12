@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS trc20_balances_rpc (
     block_num UInt32 DEFAULT 0 COMMENT 'Block number from trc20_transfer that triggered this balance query',
     
     -- Success/error tracking
-    is_ok UInt8 DEFAULT if(error = '', 1, 0),
+    is_ok UInt8 MATERIALIZED if(error = '', 1, 0),
     error String DEFAULT '',
     
     -- Timestamp of last update
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS native_balances_rpc (
     balance_hex String DEFAULT '',
     
     -- Success/error tracking
-    is_ok UInt8 DEFAULT if(error = '', 1, 0),
+    is_ok UInt8 MATERIALIZED if(error = '', 1, 0),
     error String DEFAULT '',
     
     -- Timestamp of last update
