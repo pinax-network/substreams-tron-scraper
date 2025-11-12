@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "cli": "bun run ./cli.ts",
     "start": "bun run ./services/metadata_rpc.ts",
     "balances": "bun run ./services/trc20_balances_rpc.ts",
     "native-balances": "bun run ./services/native_balances_rpc.ts",
